@@ -4,22 +4,22 @@
 
 #define MAX_LEN 1024
 
-struct Node {
+typedef struct Node {
     char *str;
     struct Node *next;
-}
+} Node;
 
-void main() {
+int main() {
     char buf[MAX_LEN];
     Node *head = NULL;
     Node *tail = NULL;
 
-    while (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+    while (fgets(buf, sizeof(buf), stdin) != NULL) {
         if (buffer[0] == '.') {
             break;
         }
 
-        int l = strlen(buffer);
+        int l = strlen(buf);
 
         Node *node = malloc(sizeof(Node));
         if (node == NULL) {
@@ -34,7 +34,8 @@ void main() {
             return 1;
         }
 
-        strcpy(node->str, buffer);
+        strcpy(node->str, buf);
+        node->next = NULL;
 
         if (head == NULL) {
             head = node;
@@ -45,16 +46,16 @@ void main() {
         }
     }
 
-    node *node = head;
-    while (node != NULL) {
-        printf("&s", node->str);
-        node = node->next;
+    Node *curr = head;
+    while (curr != NULL) {
+        printf("%s", curr->str);
+        curr = curr->next;
     }
 
-    node = head;
-    while (node != NULL) {
-        Node *tmp = node;
-        node = node->next;
+    curr = head;
+    while (curr != NULL) {
+        Node *tmp = curr;
+        curr = curr->next;
         free(tmp->str);
         free(tmp);
     }
