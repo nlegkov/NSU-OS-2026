@@ -15,7 +15,7 @@ int main() {
     Node *tail = NULL;
 
     while (fgets(buf, sizeof(buf), stdin) != NULL) {
-        if (buffer[0] == '.') {
+        if (buf[0] == '.') {
             break;
         }
 
