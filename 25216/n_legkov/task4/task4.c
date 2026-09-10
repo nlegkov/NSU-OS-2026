@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MAX_LEN 10
+#define MAX_LEN 1024
 
 typedef struct Node {
     char *str;
@@ -14,36 +14,56 @@ int main() {
     Node *head = NULL;
     Node *tail = NULL;
 
+    int fl_line = 1;
+
     while (fgets(buf, sizeof(buf), stdin) != NULL) {
-        if (buf[0] == '.') {
+        if (fl_line && buf[0] == '.') {
             break;
         }
 
         int l = strlen(buf);
 
-        Node *node = malloc(sizeof(Node));
-        if (node == NULL) {
-            perror("Error from malloc in node");
-            return 1;
+        if (fl_line) {
+                Node *node = malloc(sizeof(Node));
+            if (node == NULL) {
+                perror("Error from malloc in node");
+                return 1;
+            }
+
+            node->str = malloc(l + 1);
+            if (node->str == NULL) {
+                perror("Error to malloc for node.str");
+                free(node);
+                return 1;
+            }
+
+            strcpy(node->str, buf);
+            node->next = NULL;
+
+            if (head == NULL) {
+                head = node;
+                tail = node;
+            } else {
+                tail->next = node;
+                tail = node;
+            }
+        }
+        else {
+            int old_len = strlen(tail->str);
+            char *new_str = realloc(tail->str, old_len + l + 1);
+            if (!new_str) return 1;
+
+            tail->str = new_str;
+            strcpy(tail->str + old_len, buf);
         }
 
-        node->str = malloc(l + 1);
-        if (node->str == NULL) {
-            perror("Error to malloc for node.str");
-            free(node);
-            return 1;
-        }
-
-        strcpy(node->str, buf);
-        node->next = NULL;
-
-        if (head == NULL) {
-            head = node;
-            tail = node;
+        if (l > 0 && buf[l - 1] == '\n') {
+            fl_line = 1;
         } else {
-            tail->next = node;
-            tail = node;
+            fl_line = 0; 
         }
+
+        
     }
 
     Node *curr = head;
