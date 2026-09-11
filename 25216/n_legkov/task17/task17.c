@@ -21,7 +21,7 @@ void handle_signal(int sig) {
 
 void redraw_line(const char *buf, int len) {
     for (int i = 0; i < printed_lines; i++) {
-        printf("\r\033[2K\033[1A"); 
+        printf("\r\033[2K\033[1A"); //двигаем курсор в начало удаляем строку и поднимаемся наверх
     }
     printf("\r\033[2K"); 
 
@@ -81,11 +81,11 @@ int main(void) {
     buf[0] = '\0';
 
     while (1) {
-        if (read(STDIN_FILENO, &ch, 1) <= 0) {
+        if (read(STDIN_FILENO, &ch, 1) <= 0) { //читаем символ
             break;
         }
 
-        if (ch == old_settings.c_cc[VEOF]) {
+        if (ch == old_settings.c_cc[VEOF]) { //завершаем программу если строка пуста
             if (len == 0) {
                 break;
             } else {
@@ -95,7 +95,7 @@ int main(void) {
             }
         }
 
-        if (ch == old_settings.c_cc[VERASE] || ch == 127 || ch == '\b') {
+        if (ch == old_settings.c_cc[VERASE] || ch == 127 || ch == '\b') { //cтираем один символ
             if (len > 0) {
                 len--;
                 buf[len] = '\0';
@@ -104,11 +104,11 @@ int main(void) {
                 putchar('\a');
                 fflush(stdout);
             } 
-        } else if (ch == old_settings.c_cc[VKILL]) {
+        } else if (ch == old_settings.c_cc[VKILL]) { //ctrl u убивает всю строку
             len = 0;
             buf[0] = '\0';
             redraw_line(buf, len);
-        } else if (ch == old_settings.c_cc[VWERASE]) {
+        } else if (ch == old_settings.c_cc[VWERASE]) { //ctrl w удалить последнее слово
             while (len > 0 && buf[len - 1] == ' ') {
                 len--;
             } 
@@ -118,13 +118,13 @@ int main(void) {
 
             buf[len] = '\0';
             redraw_line(buf, len);
-        } else if (ch == '\n' || ch == '\r') {
+        } else if (ch == '\n' || ch == '\r') { //enter типо фиксируем нынешнюю строку и начинаем новую
             putchar('\n');
             len = 0;
             buf[0] = '\0';
             printed_lines = 0;
             fflush(stdout);
-        } else if (isprint(ch)) {
+        } else if (isprint(ch)) { //проверка на то печатается ли символ или нет, по сути можно было просто от 20 какого то до 120 какого то, но это что то умное
             if (len < 40) {
                 buf[len++] = ch;
                 buf[len] = '\0';
@@ -133,7 +133,7 @@ int main(void) {
                 putchar('\a');
                 fflush(stdout);
             }
-        } else {
+        } else { //в ином случае просто сигналим 
             putchar('\a');
             fflush(stdout);
         }
