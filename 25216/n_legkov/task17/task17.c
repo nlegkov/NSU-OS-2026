@@ -4,32 +4,10 @@
 #include <termios.h>
 #include <signal.h>
 #include <sys/ioctl.h>
+#include <ctype.h>
 
 struct termios old_settings;
-
-typedef struct NodeLine {
-    char *str;
-    struct NodeLine *next;
-    int len;
-    struct NodeLine *old;
-} NodeLine;
-
-NodeLine *init_line(void) {
-    NodeLine *line = malloc(sizeof(NodeLine));
-    if (!line) return NULL;
-
-    line->len = 0;
-    line->next = NULL;
-    line->str = malloc(41);
-    if (!line->str) {
-        free(line);
-        return NULL;
-    }
-    line->old = NULL;
-    line->str[0] = '\0';
-
-    return line;
-}
+static int printed_lines = 0;
 
 void restore_terminal(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &old_settings);
@@ -41,40 +19,42 @@ void handle_signal(int sig) {
     _exit(0);
 }
 
-int get_terminal_width(void) {
-    struct winsize w;
-    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0) {
-        return w.ws_col;
+void redraw_line(const char *buf, int len) {
+    for (int i = 0; i < printed_lines; i++) {
+        printf("\r\033[2K\033[1A"); 
     }
-    return 80;
-}
+    printf("\r\033[2K"); 
 
-void erase_one_char(int curr_len) {
-    int term_width = get_terminal_width();
+    printed_lines = 0;
+    int col = 0;
 
-    if (curr_len > 0 && (curr_len % term_width == 0)) {
-        printf("\033[1A\033[999C \b"); //подняться наверх сдвинуть в конец и затереть пробелом
-    } else {
-        printf("\b \b");
-    } 
-    fflush(stdout); //?
-}
+    for (int i = 0; i < len; i++) {
+        if (buf[i] != ' ' && (i == 0 || buf[i - 1] == ' ')) {
+            int word_len = 0;
+            while (i + word_len < len && buf[i + word_len] != ' ') {
+                word_len++;
+            }
+            if (col > 0 && col + word_len > 40) {
+                putchar('\n');
+                printed_lines++;
+                col = 0;
+            }
+        }
 
-void free_lines(NodeLine *head) {
-    while (head != NULL) {
-        NodeLine *tmp = head;
-        head = head->next;
-        free(tmp->str);
-        free(tmp);
-    }
+        putchar(buf[i]);
+        col++;
+    }    
+    fflush(stdout);
 }
 
 int main(void) {
     struct termios new_settings;
     char ch;
+    char buf[41];
+    int len = 0;
 
     if (!isatty(STDIN_FILENO)) {
-        fprintf(stderr, "error: stdin no termenal\n");
+        fprintf(stderr, "error: stdin no terminal\n");
         return 1;
     }
 
@@ -98,116 +78,67 @@ int main(void) {
         return 1;
     }
 
-    NodeLine *line = init_line();
-
-    NodeLine *head = line;
-    NodeLine *tail = line;
+    buf[0] = '\0';
 
     while (1) {
-        int bytes_read = read(STDIN_FILENO, &ch, 1);
-
-        if (bytes_read <= 0) {
+        if (read(STDIN_FILENO, &ch, 1) <= 0) {
             break;
         }
 
-        if (ch == '\n' || ch == '\r' || ch == 27 || ch == old_settings.c_cc[VEOF]) {
-            break;
-        }
-
-        if (ch == old_settings.c_cc[VKILL]) {
-            while (tail != NULL) {
-                while(tail->len > 0) {
-                    erase_one_char(tail->len);
-                    tail->len--;
-                }
-                tail->str[0] = '\0';
-
-                if (tail->old != NULL) {
-                    NodeLine *tmp = tail;
-                    tail = tail->old;
-                    tail->next = NULL;
-                    free(tmp->str);
-                    free(tmp);
-                } else {
-                    break;
-                }
+        if (ch == old_settings.c_cc[VEOF]) {
+            if (len == 0) {
+                break;
+            } else {
+                putchar('\a');
+                fflush(stdout);
+                continue;
             }
+        }
+
+        if (ch == old_settings.c_cc[VERASE] || ch == 127 || ch == '\b') {
+            if (len > 0) {
+                len--;
+                buf[len] = '\0';
+                redraw_line(buf, len);
+            } else {
+                putchar('\a');
+                fflush(stdout);
+            } 
+        } else if (ch == old_settings.c_cc[VKILL]) {
+            len = 0;
+            buf[0] = '\0';
+            redraw_line(buf, len);
         } else if (ch == old_settings.c_cc[VWERASE]) {
-            while(tail != NULL && tail->len >0 && tail->str[tail->len - 1] == ' ') {
-                erase_one_char(tail->len);
-                tail->len--;
-                tail->str[tail->len] = '\0';
+            while (len > 0 && buf[len - 1] == ' ') {
+                len--;
+            } 
+            while (len > 0 && buf[len - 1] != ' ') {
+                len--;
+            } 
 
-                if (tail->len == 0 && tail->old != NULL) {
-                    NodeLine *tmp = tail;
-                    tail = tail->old;
-                    tail->next = NULL;
-                    free(tmp->str);
-                    free(tmp);
-                }
-            }
-            while(tail != NULL && tail->len >0 && tail->str[tail->len - 1] != ' ') {
-                erase_one_char(tail->len);
-                tail->len--;
-                tail->str[tail->len] = '\0';
-
-                if (tail->len == 0 && tail->old != NULL) {
-                    NodeLine *tmp = tail;
-                    tail = tail->old;
-                    tail->next = NULL;
-                    free(tmp->str);
-                    free(tmp);
-                }
-            }
-        } else if (ch == old_settings.c_cc[VERASE]) {
-            if (tail->len >0) {
-                erase_one_char(tail->len);
-                tail->len--;
-                tail->str[tail->len] = '\0';
-            } else if (tail->old != NULL) {
-                NodeLine *tmp = tail;
-                tail = tail->old;
-                tail->next = NULL;
-                free(tmp->str);
-                free(tmp);
-
-                if (tail->len > 0) {
-                    erase_one_char(tail->len);
-                    tail->len--;
-                    tail->str[tail->len] = '\0';
-                }
-            }
+            buf[len] = '\0';
+            redraw_line(buf, len);
         } else if (ch == '\n' || ch == '\r') {
             putchar('\n');
+            len = 0;
+            buf[0] = '\0';
+            printed_lines = 0;
             fflush(stdout);
-
-            NodeLine *new_node = init_line();
-            if (new_node) {
-                tail->next = new_node;
-                new_node->old = tail;
-                tail = new_node;
+        } else if (isprint(ch)) {
+            if (len < 40) {
+                buf[len++] = ch;
+                buf[len] = '\0';
+                redraw_line(buf, len);
+            } else {
+                putchar('\a');
+                fflush(stdout);
             }
-        } else if (ch >= 32 && ch <= 126) {
-            if (tail->len >= 40) {
-                NodeLine *new_node = init_line();
-                if (new_node) {
-                    tail->next = new_node;
-                    new_node->old = tail;
-                    tail = new_node;
-                }
-            }
-
-            tail->str[tail->len++] = ch;
-            tail->str[tail->len] = '\0';
-
-            putchar(ch);
+        } else {
+            putchar('\a');
             fflush(stdout);
         }
     }
 
     printf("\nTerminal died.\n");
-
-    free_lines(head);
-
     return 0;
 }
