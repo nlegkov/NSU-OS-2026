@@ -1,33 +1,29 @@
 #include <sys/types.h>
 #include <unistd.h>
- #include <stdlib.h>
- #include <stdio.h>
- static const int Bignumber = 10000;
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/wait.h>
 
- main(int argc, char *argv[ ]) /* demonstrate fork(2) */
- {
- char ch, first, last;
- pid_t pid;
- int i;
+ main(int argc, char *argv[ ]) {
+    pid_t pid;
+    int status;
 
- if ((pid = fork()) > 0) { /* parent */
- first = 'A';
- last = 'Z';
- }
- else if (pid == 0) { /* child */
- first = 'a';
- last = 'z';
- }
- else { /* cannot fork(2) */
- perror(argv[0]);
- exit(1);
- }
- for (ch = first; ch <= last; ch++) {
- /* delay loop */
- for (i = 0; i < Bignumber; i++)
- ; /* null */
- write(1, &ch, 1);
- }
+    if ((pid = fork()) < 0) { 
+        perror("fork error");
+        exit(1);
+    }
 
- exit(0);
- }
+    if (pid == 0) {
+        execlp("cat", "cat", "file.txt", NULL);
+
+        perror("exec error");
+        exit(1);
+    }
+
+    wait(&status);
+
+
+    printf("Process kill :)");
+    
+    return 0;
+}
