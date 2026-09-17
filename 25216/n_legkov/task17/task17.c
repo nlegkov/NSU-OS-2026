@@ -95,7 +95,7 @@ int main(void) {
             }
         }
 
-        if (ch == old_settings.c_cc[VERASE] || ch == 127 || ch == '\b') { //cтираем один символ
+        if (ch == old_settings.c_cc[VERASE] || ch == 127) { //cтираем один символ
             if (len > 0) {
                 len--;
                 buf[len] = '\0';
