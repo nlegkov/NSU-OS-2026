@@ -64,3 +64,24 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     errno = last_errno;
     return -1;
 }
+
+int main(void) {
+    // Аргументы для запускаемой программы (например, ls -l)
+    char *argv[] = { "ls", "-l", NULL };
+
+    // Кастомное окружение с вашим PATH
+    char *envp[] = { 
+        "PATH=/usr/local/bin:/usr/bin:/bin", 
+        "USER=testuser", 
+        NULL 
+    };
+
+    printf("Попытка запуска программы через execvpe...\n");
+
+    // Вызываем вашу функцию
+    execvpe("ls", argv, envp);
+
+    // Если мы оказались ЗДЕСЬ — значит execvpe вернул -1 и произошла ошибка
+    perror("Ошибка выполнения execvpe");
+    return 1;
+}
