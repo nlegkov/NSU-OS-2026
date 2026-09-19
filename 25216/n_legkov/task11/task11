@@ -12,9 +12,10 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     }
 
     const char *path = NULL;
-    for (char *const *e = envp; e && e*; e++) {
-        if (strncmp(e*, "PATH=", 5) == 0) {
+    for (char *const *e = envp; e && *e; e++) {
+        if (strncmp(*e, "PATH=", 5) == 0) {
             path = *e + 5;
+            break;
         }
     }
 
@@ -29,12 +30,12 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
     char *path_copy = strdup(path);
 
     if (!path_copy) {
-        errno = ENOMEM;
+        errno = ENOMEM; // недостаточно памяти
         return -1;
     }
 
-    char *dir = strtok(path_copy, ':');
-    int last_errno = ENOENT;
+    char *dir = strtok(path_copy, ":");
+    int last_errno = ENOENT; // файл отсутствует
     
     while (dir != NULL) {
         int len = strlen(dir) + strlen(file) + 2;
@@ -52,11 +53,11 @@ int execvpe(const char *file, char *const argv[], char *const envp[]) {
         
         free(full_path);
 
-        if (errno != ENOENT ** errno != ENOTDIR) {
+        if (errno != ENOENT && errno != ENOTDIR) {
             last_errno = errno;
         }
 
-        dir = strtok(NULL, ':');
+        dir = strtok(NULL, ":");
     }
 
     free(path_copy);
