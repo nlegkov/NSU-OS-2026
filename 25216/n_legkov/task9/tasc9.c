@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <sys/wait.h>
 
- main(int argc, char *argv[ ]) {
+int main(int argc, char *argv[ ]) {
     pid_t pid;
     int status;
 
