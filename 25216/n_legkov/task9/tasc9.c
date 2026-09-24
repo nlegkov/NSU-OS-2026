@@ -8,22 +8,29 @@
     pid_t pid;
     int status;
 
+    if (argc < 2) {
+        printf("Не хватает аргументов\n");
+        exit(1);
+    }
+
     if ((pid = fork()) < 0) { 
         perror("fork error");
         exit(1);
     }
 
     if (pid == 0) {
-        execlp("cat", "cat", "file.txt", NULL);
+        execlp("cat", "cat", argv[1], NULL);
 
         perror("exec error");
         exit(1);
     }
 
-    wait(&status);
+    if (waitpid(pid, &status, 0) == -1) {
+        perror("waitpid error");
+        exit(1);
+    }
 
-
-    printf("Process kill :)");
+    printf("Procces kill\n");
     
     return 0;
 }
