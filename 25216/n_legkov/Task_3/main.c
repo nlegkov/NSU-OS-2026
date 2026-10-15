@@ -7,11 +7,11 @@ void check_file(const char *file) {
 
     FILE *file_f = fopen(file, "r");
 
-    if (file == NULL) {
+    if (file_f == NULL) {
         perror("fopen");
     } else {
         printf("File opened successfully\n");
-        fclose(file);
+        fclose(file_f);
     }
 }
 
