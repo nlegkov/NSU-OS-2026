@@ -5,7 +5,7 @@ void check_file(const char *file) {
     printf("Real UID: %ld\n", (long)getuid());
     printf("Effective UID: %ld\n", (long)geteuid());
 
-    FILE *file = fopen("data.txt", "r");
+    FILE *file_f = fopen(file, "r");
 
     if (file == NULL) {
         perror("fopen");
