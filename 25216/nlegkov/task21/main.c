@@ -37,7 +37,7 @@ int main() {
     while (1)
     {
         if (stop == 1) {
-            printf("%d", count);
+            printf("\nВведено сигинтов: %d\n", count);
             fflush(stdout);
             return 0;
         }
