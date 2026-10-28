@@ -24,21 +24,25 @@ int main() {
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
 
-    sigaction(SIGINT, &sa, NULL);
-
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        perror("sigaction SIGINT");
+        return 1;
+    }
     struct sigaction sa2 = {0};
 
     sa2.sa_handler = quit_handler;
     sigemptyset(&sa2.sa_mask);
     sa2.sa_flags = 0;
 
-    sigaction(SIGQUIT, &sa2, NULL);
+    if (sigaction(SIGQUIT, &sa, NULL) == -1) {
+        perror("sigaction SIGQUIT");
+        return 1;
+    }
 
     while (1)
     {
         if (stop == 1) {
             printf("\nВведено сигинтов: %d\n", count);
-            fflush(stdout);
             return 0;
         }
     }
