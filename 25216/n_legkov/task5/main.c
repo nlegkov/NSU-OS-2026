@@ -32,7 +32,20 @@ int main() {
 
             if (index + 1 > len_list) {
                 len_list *= 2;
-                list_lseek_size = realloc(list_lseek_size, len_list * sizeof(Line));
+
+                Line *temp = realloc(
+                    list_lseek_size,
+                    len_list * sizeof(Line)
+                );
+
+                if (temp == NULL) {
+                    perror("realloc");
+                    free(list_lseek_size);
+                    close(file);
+                    return 1;
+                }
+
+                list_lseek_size = temp;
             }
 
             off_t position = lseek(file, 0, SEEK_CUR);
@@ -52,7 +65,7 @@ int main() {
         if (index + 1 > len_list) {
             len_list *= 2;
 
-            int *temp = realloc(
+            Line *temp = realloc(
                 list_lseek_size,
                 len_list * sizeof(Line)
             );
@@ -89,12 +102,12 @@ int main() {
             return 0;
         }
 
-        if (n < 1 || (n - 1) >= index / 2) {
+        if (n < 1 || (n - 1) >= index) {
             printf("Такой строки нет\n");
             continue;
         }
         
-        int k = (n - 1) * 2;
+        int k = n - 1;
 
         off_t start = list_lseek_size[k].offset;
         size_t size = list_lseek_size[k].length;
