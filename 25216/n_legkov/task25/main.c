@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -25,6 +26,10 @@ int main() {
             char buf[1024];
             ssize_t bytesRead = read(pipefd[0], buf, sizeof(buf));
             if (bytesRead == -1) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
                 perror("Error from read");
                 exit(1);
             }
@@ -37,11 +42,24 @@ int main() {
             for (ssize_t i = 0; i < bytesRead; i++) {
                 buf[i] = toupper((unsigned char)buf[i]);
             }
-            
-            ssize_t bytesWritten = write(STDOUT_FILENO, buf, bytesRead);
-            if (bytesWritten == -1) {
-                perror("Error from write");
-                exit(1);
+
+            ssize_t totalWritten = 0;
+
+            while (totalWritten < bytesRead) {
+                ssize_t bytesWritten = write(pipefd[1],
+                                buf + totalWritten,
+                                bytesRead - totalWritten);
+
+                if (bytesWritten == -1) {
+                    if (errno == EINTR) {
+                        continue;
+                    }
+
+                    perror("Error from write");
+                    exit(1);
+                }
+
+                totalWritten += bytesWritten;
             }
         }
 
@@ -52,6 +70,10 @@ int main() {
             char buf[1024];
             ssize_t bytesRead = read(STDIN_FILENO, buf, sizeof(buf));
             if (bytesRead == -1) {
+                if (errno == EINTR) {
+                    continue;
+                }
+
                 perror("Error from read");
                 exit(1);
             }
@@ -61,14 +83,34 @@ int main() {
                 break;
             }
 
-            ssize_t bytesWritten = write(pipefd[1], buf, bytesRead);
-            if (bytesWritten == -1) {
-                perror("Error from write");
-                exit(1);
+            ssize_t totalWritten = 0;
+
+            while (totalWritten < bytesRead) {
+                ssize_t bytesWritten = write(pipefd[1],
+                                buf + totalWritten,
+                                bytesRead - totalWritten);
+
+                if (bytesWritten == -1) {
+                    if (errno == EINTR) {
+                        continue;
+                    }
+
+                    perror("Error from write");
+                    exit(1);
+                }
+
+                totalWritten += bytesWritten;
             }
         }
 
-        waitpid(pid, NULL, 0);
+        while (waitpid(pid, NULL, 0) == -1) {
+            if (errno == EINTR) {
+                continue;
+            }
+
+            perror("Error from waitpid");
+            exit(1);
+        }
 
     }
 
